@@ -17,7 +17,10 @@ const byte ADDRESSES[] = {  START_OFFSET, // Stat Plat1 Sdng
                             START_OFFSET + 7, // Depot Entry 
                             START_OFFSET + 8, // Depot Sidings
                           };
-const byte PINS[] = { 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 };
+//                        40   41   42   43   44   49   45   46   47   48
+const byte PINS[] = {     3,   4,   5,   6,   7,   8,   9,   10,  11,  12 };
+const byte LEFTPOS[] = {  92,  18,  143, 47,  134, 29,  144, 117, 104, 121 };
+const byte RIGHTPOS[] = { 145, 111, 45,  103, 51,  90,  55,  47,  45,  47 };
 
 class Turnout
 {
@@ -92,7 +95,7 @@ public:
       if (m_isMoving)
       {
         m_isMoving = false;
-        m_servo.detach();
+        m_servo.detach(); // Detach otherwise the servo will continue to "seek"
       }
       return false;
     }
@@ -130,11 +133,15 @@ public:
     {
       turnouts[nCount] = new Turnout( ADDRESSES[nCount],
                                       PINS[nCount],
-                                      EEPROM.read(nCount * 2) - 2, 
-                                      EEPROM.read(nCount * 2 + 1) + 2);
+                                      LEFTPOS[nCount],
+                                      RIGHTPOS[nCount]);
+// Reverted to hard coded values rather than using EEPROM as not setting values via any means other than directly in code (i.e. no DCC programming)
+//                                      EEPROM.read(nCount * 2) - 2, 
+//                                      EEPROM.read(nCount * 2 + 1) + 2);
     }
   }
 
+  // Not currently used as values are hardcoded rather than being programmed via another means
   void saveTurnouts()
   {
     for (int nCount = 0; nCount < TURNOUT_COUNT; nCount++)
@@ -180,6 +187,7 @@ public:
         return;
       }
     }
+    digitalWrite(LED_BUILTIN, LOW);
   }
 };
 
@@ -213,6 +221,7 @@ void BasicAccDecoderPacket_Handler(int address, boolean activate, byte data)
     {
       pTurnout->setToRight();
     }
+    digitalWrite(LED_BUILTIN, HIGH);
   }
   else
   {
@@ -226,6 +235,9 @@ void setup()
 
   DCC.SetBasicAccessoryDecoderPacketHandler(BasicAccDecoderPacket_Handler, true);
   DCC.SetupDecoder( 0x00, 0x00, 0 );
+
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, LOW);
 }
 
 void loop() {
